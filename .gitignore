@@ -1,0 +1,22 @@
+# Compiled XDP object files and ll files.
+*.o
+*.ll
+
+# Compiled userspace programs
+stats_user
+pinning_user
+
+layer2_user
+layer3_user
+layer4_user
+
+tcbit_user
+loadshed_user
+
+# IDE/Editor specific directories/files
+.vscode/
+
+# lab setup files
+packer_cache/
+*.iso
+xdp-test-lab-virtualbox/
