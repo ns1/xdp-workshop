@@ -1,0 +1,49 @@
+CC ?= gcc
+LLC ?= llc
+CLANG ?= clang
+
+KERNEL_TARGET_OBJECT = ${KERNEL_TARGET:=.o}
+KERNEL_TARGET_LLC_OBJECT = ${KERNEL_TARGET:=.ll}
+
+LIBBPF_DIR = ../../libbpf/src
+LIBBPF_TARGET = $(LIBBPF_DIR)/libbpf.a
+
+OBJECT_LOADBPF = ../../common/headers/bpf_load.o
+
+CFLAGS ?=
+CFLAGS += "-I../../common/headers/"
+CFLAGS += "-I$(LIBBPF_DIR)/root/usr/include/"
+CFLAGS += "-I/usr/include/x86_64-linux-gnu"
+
+.PHONY: all
+all: $(KERNEL_TARGET_OBJECT) $(USER_TARGET)
+
+$(OBJECT_LOADBPF): ../../common/headers/bpf_load.c ../../common/headers/bpf_load.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+$(LIBBPF_TARGET):
+	cd $(LIBBPF_DIR) && $(MAKE) all; \
+		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
+
+$(USER_TARGET): %: %.c %.h $(LIBBPF_TARGET)
+	$(CC) \
+		$(CFLAGS) \
+		-L$(LIBBPF_DIR) \
+		-Wall \
+		-Wno-unused-variable \
+		-O2 -g -o $@ $< \
+		-l:libbpf.a -lbpf -lelf
+
+$(KERNEL_TARGET_OBJECT): %.o: %.c
+	$(CLANG) -S \
+	    -target bpf \
+	    -D __BPF_TRACING__ \
+	    $(CFLAGS) \
+	    -Wall \
+		-Wno-compare-distinct-pointer-types \
+	    -O2 -emit-llvm -c -g -o $(KERNEL_TARGET_LLC_OBJECT) $<
+	$(LLC) -march=bpf -filetype=obj -o $@ $(KERNEL_TARGET_LLC_OBJECT)
+
+.PHONY: clean
+clean:
+	rm -f *.ll *.o $(USER_TARGET)
