@@ -1,0 +1,141 @@
+{
+    "variables": {
+        "ubuntu_iso_url": "http://releases.ubuntu.com/19.04/ubuntu-19.04-live-server-amd64.iso",
+        "ubuntu_iso_path": "./ubuntu-19.04-live-server-amd64.iso",
+        "ubuntu_iso_sha256_checksum": "25d483341ccd0d522a6660b00db933787c86c47b42f1845bcf997127f4b61e9d",
+        "vm_name": "xdp-test-lab",
+        "fullname": "XDP User",
+        "user": "xdp",
+        "password": "xdp",
+        "memory": "2048",
+        "cpus": "2",
+        "hostonly_network": "vboxnet0"
+    },
+    "builders": [
+        {
+            "type": "virtualbox-iso",
+            "guest_os_type": "Ubuntu_64",
+            "boot_command": [
+                "<enter><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<down><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<enter><wait>",
+                "<down><wait>",
+                "<enter><wait>",
+                "<tab><wait>",
+                "<del><wait>",
+                "<del><wait>",
+                "<del><wait>",
+                "<del><wait>",
+                "<del><wait>",
+                "<del><wait>",
+                "13.644G<wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<enter><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<enter><wait>",
+                "<down><wait>",
+                "<enter><wait>",
+                "{{user `fullname`}}<wait>",
+                "<tab><wait>",
+                "{{user `vm_name`}}<wait>",
+                "<tab><wait>",
+                "{{user `user`}}<wait>",
+                "<tab><wait>",
+                "{{user `password`}}<wait>",
+                "<tab><wait>",
+                "{{user `password`}}<wait>",
+                "<tab><wait>",
+                "<enter><wait>",
+                "<enter><wait>",
+                "<tab><wait>",
+                "<tab><wait>",
+                "<enter><wait>",
+                "<tab><wait>",
+                "<enter><wait>",
+                "<wait120>",
+                "<enter>",
+                "<wait10>",
+                "<enter>"
+            ],
+            "boot_wait": "30s",
+            "disk_size": "15000",
+            "http_directory": "./setup",
+            "hard_drive_interface": "sata",
+            "headless": false,
+            "iso_urls": [
+                "{{ user `ubuntu_iso_path` }}",
+                "{{ user `ubuntu_iso_url` }}"
+            ],
+            "iso_checksum": "{{ user `ubuntu_iso_sha256_checksum` }}",
+            "iso_checksum_type": "sha256",
+            "output_directory": "{{ user `vm_name` }}-virtualbox",
+            "shutdown_command": "echo '{{user `password`}}' | sudo -E -S poweroff",
+            "post_shutdown_delay": "1m",
+            "ssh_username": "{{ user `user` }}",
+            "ssh_password": "{{ user `password` }}",
+            "ssh_wait_timeout": "10000s",
+            "vboxmanage": [
+                ["modifyvm", "{{.Name}}", "--nic1", "nat"],
+                ["modifyvm", "{{.Name}}", "--nictype1", "virtio"],
+                ["modifyvm", "{{.Name}}", "--nic2", "hostonly"],
+                ["modifyvm", "{{.Name}}", "--nictype2", "virtio"],
+                ["modifyvm", "{{.Name}}", "--hostonlyadapter2", "{{user `hostonly_network`}}"],
+                ["modifyvm", "{{.Name}}", "--memory", "{{ user `memory` }}"],
+                ["modifyvm", "{{.Name}}", "--cpus", "{{ user `cpus` }}"]
+            ],
+            "virtualbox_version_file": ".vbox_version",
+            "vm_name": "{{user `vm_name`}}",
+            "export_opts": [
+                "--manifest",
+                "--vsys", "0",
+                "--description", "XDP Workshop Test Lab",
+                "--version", "1.0.0"
+            ],
+            "format": "ova",
+            "keep_registered": true
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "script": "./setup/vm-setup.sh",
+            "execute_command": "chmod +x {{ .Path }}; echo '{{user `password`}}' | sudo -E -S {{ .Path }} {{user `user`}}",
+            "valid_exit_codes": [0, 2]
+        },
+        {
+            "type":"file",
+            "source": "./ssh/",
+            "destination": "/home/{{user `user`}}/.ssh/"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "chmod 700 /home/{{user `user`}}/.ssh",
+                "chmod 600 /home/{{user `user`}}/.ssh/*"
+            ]
+        }
+    ]
+}
