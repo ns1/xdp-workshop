@@ -53,7 +53,7 @@ VBoxManage dhcpserver modify --ifname vboxnet0 --enable
 ```
 
 ### Import the OVA
-You can either download the [ova file here]() or build it locally depending on your preferences.
+You can either download the [ova file here](https://www.dropbox.com/s/llqt5f2jfizaz8i/xdp-test-lab.ova?dl=0) or build it locally depending on your preferences.
 
 > NOTE: For building the ove file locally see the instructions in the `Build the VM` section bellow.
 
