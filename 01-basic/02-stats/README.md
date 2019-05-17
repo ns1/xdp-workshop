@@ -161,7 +161,7 @@ struct bpf_map_def SEC("maps") counters = {
 };
 ```
 
-This BPF map is an array of one element using `__u32` keys with `struct counters` values. Take a look at the `common/headers/structs.h` in the root of this repo for the definition of this struct. The program itself is accessing this MAP and incrementing the fields of the stored value by the number of packets and bytes processed by the program.
+This BPF map is an array of one element using `__u32` keys with `struct counters` values. Take a look at the `common.h` file for the definition of this struct. The program itself is accessing this MAP and incrementing the fields of the stored value by the number of packets and bytes processed by the program.
 
 In order to view this data we have two options we can use `libbpf` to interrogate the file programatically which is what the file `stats_user.c` is doing, or we can use a tool called `bpftool` to take a look at this map in action.
 
