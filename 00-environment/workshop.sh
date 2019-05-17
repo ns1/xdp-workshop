@@ -92,7 +92,6 @@ function setup() {
     ip netns exec ${NIC_NAMESPACE} ip addr add ${SECONDARY_NIC_ADDR}/${NIC_MASK_V4} dev ${SECONDARY_NIC_NAME}
     ip netns exec ${NIC_NAMESPACE} ip addr add ${SECONDARY_NIC_ADDR_V6}/${NIC_MASK_V6} dev ${SECONDARY_NIC_NAME}
     ip netns exec ${NIC_NAMESPACE} ip link set ${SECONDARY_NIC_NAME} up
-    ip netns exec ${NIC_NAMESPACE} ip route add default via ${PRIMARY_NIC_ADDR} dev ${SECONDARY_NIC_NAME}
 
     info "Interface configuration complete."
     echo ""
