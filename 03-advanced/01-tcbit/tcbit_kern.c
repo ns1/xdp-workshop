@@ -5,7 +5,6 @@
 
 #include "bpf_endian.h"
 
-#include "maps.h"
 #include "utils.h"
 
 #define bpf_debug(fmt, ...)                        \
@@ -67,7 +66,7 @@ static __always_inline __u32 parse_v4(struct xdp_md *ctx, struct metadata *meta)
 static __always_inline __u32 parse_v6(struct xdp_md *ctx, struct metadata *meta)
 {
     void *data_end = get_data_end(ctx);
-    meta->v6 = get_data(ctx);
+    meta->v6 = get_data(ctx) + meta->nh_offset;
 
     if (meta->v6 + 1 > data_end)
     {
@@ -100,6 +99,25 @@ static __always_inline __u32 parse_udp(struct xdp_md *ctx, struct metadata *meta
     return XDP_PASS;
 }
 
+static __always_inline void csum_update(__u16 *csum, __u32 from, __u32 to)
+{
+    __u32 sum, csum_c, from_c, res, res2, ret, ret2;
+
+    csum_c = ~((__u32)*csum);
+    from_c = ~from;
+    res = csum_c + from_c;
+    ret = res + (res < from_c);
+
+    res2 = ret + to;
+    ret2 = res2 + (res2 < to);
+
+    sum = ret2;
+    sum = (sum & 0xffff) + (sum >> 16);
+    sum = (sum & 0xffff) + (sum >> 16);
+
+    *csum = (__u16)~sum;
+}
+
 static __always_inline void swap_mac(struct metadata *meta)
 {
     __u8 temp[6];
@@ -116,7 +134,11 @@ static __always_inline void swap_ip(struct metadata *meta)
         __builtin_memcpy(&temp, &meta->v4->daddr, sizeof(temp));
         __builtin_memcpy(&meta->v4->daddr, &meta->v4->saddr, sizeof(temp));
         __builtin_memcpy(&meta->v4->saddr, &temp, sizeof(temp));
-        // meta->v4->ttl = 64;
+
+        __u8 old_ttl = meta->v4->ttl;
+        meta->v4->ttl = 64;
+
+        csum_update(&meta->v4->check, old_ttl, meta->v4->ttl);
     }
     else if (meta->v6)
     {
@@ -124,7 +146,8 @@ static __always_inline void swap_ip(struct metadata *meta)
         __builtin_memcpy(&temp, &meta->v6->daddr, sizeof(temp));
         __builtin_memcpy(&meta->v6->daddr, &meta->v6->saddr, sizeof(temp));
         __builtin_memcpy(&meta->v6->saddr, &temp, sizeof(temp));
-        // meta->v6->hop_limit = 64;
+
+        meta->v6->hop_limit = 64;
     }
 }
 
@@ -183,17 +206,23 @@ int tcbit_fn(struct xdp_md *ctx)
 
     void *data_end = get_data_end(ctx);
     meta.dns = get_data(ctx) + meta.nh_offset;
+    meta.dns_compare = get_data(ctx) + meta.nh_offset;
 
     if (meta.dns + 1 > data_end)
     {
         action = XDP_PASS;
         goto ret;
     }
+
+    __u16 old_flags = meta.dns_compare->flags;
+
     meta.dns->qr = 1;
     meta.dns->opcode = 0;
     meta.dns->aa = 0;
     meta.dns->tc = 1;
     meta.dns->ra = 1;
+
+    csum_update(&meta.udp->check, old_flags, meta.dns_compare->flags);
 
     swap_mac(&meta);
     swap_ip(&meta);
