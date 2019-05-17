@@ -5,9 +5,11 @@
 #include <linux/ipv6.h>
 
 #include "bpf_endian.h"
+
+#include "utils.h"
+
 #include "layer2_maps.h"
 #include "layer3_maps.h"
-#include "utils.h"
 
 static __always_inline __u32 parse_eth(struct xdp_md *ctx, __u32 *nh_offset, __u32 *nh_proto)
 {

@@ -17,13 +17,7 @@
 #include "options.h"
 #include "user_helpers.h"
 
-#define NUM_MAPS 2
 #define ACTION_MAP_PATH "/sys/fs/bpf/action"
-
-static const char *xdp_maps[NUM_MAPS] = {
-    [0] = ACTION_MAP_PATH,
-    [1] = COUNTER_MAP_PATH,
-};
 
 static int str2action(const char *action)
 {

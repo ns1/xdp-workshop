@@ -1,20 +1,7 @@
-#ifndef _STRUCTS_H
-#define _STRUCTS_H
+#ifndef _COMMON_H
+#define _COMMON_H
 
 #include <linux/types.h>
-
-/* The counters struct bellow represents the number of packets and bytes a given
- * XDP program has encountered.
- *
- * Notice that there is no distinction between RX and TX since XDP programs only
- * see RX and have no ability to interact with, packets transmitted from the
- * host.
- */
-struct counters
-{
-    __u64 packets;
-    __u64 bytes;
-};
 
 /* Pulled from $(LINUX)/include/linux/if_vlan.h#L38 */
 struct vlan_hdr
@@ -69,4 +56,4 @@ struct port_key
 #define PORT_BLACKLIST_MAX_ENTRIES (65535 * 2) /* src + dest */
 #endif
 
-#endif /* _STRUCTS_H */
+#endif /* _COMMON_H */

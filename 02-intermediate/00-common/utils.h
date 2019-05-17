@@ -4,6 +4,7 @@
 #include <linux/bpf.h>
 
 #include "bpf_helpers.h"
+#include "common.h"
 #include "structs.h"
 
 struct bpf_map_def SEC("maps") action_counters = {
