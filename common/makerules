@@ -2,30 +2,30 @@ CC ?= gcc
 LLC ?= llc
 CLANG ?= clang
 
+COMMON_DIR ?= ../../common
+LIBBPF_DIR ?= ../../libbpf/src
+
 KERNEL_TARGET_OBJECT = ${KERNEL_TARGET:=.o}
 KERNEL_TARGET_LLC_OBJECT = ${KERNEL_TARGET:=.ll}
+KERNEL_TARGET_DEPS ?=
 
-LIBBPF_DIR = ../../libbpf/src
+USER_TARGET_DEPS ?=
+
 LIBBPF_TARGET = $(LIBBPF_DIR)/libbpf.a
 
-OBJECT_LOADBPF = ../../common/headers/bpf_load.o
-
 CFLAGS ?=
-CFLAGS += "-I../../common/headers/"
+CFLAGS += "-I$(COMMON_DIR)/headers/"
 CFLAGS += "-I$(LIBBPF_DIR)/root/usr/include/"
 CFLAGS += "-I/usr/include/x86_64-linux-gnu"
 
 .PHONY: all
 all: $(KERNEL_TARGET_OBJECT) $(USER_TARGET)
 
-$(OBJECT_LOADBPF): ../../common/headers/bpf_load.c ../../common/headers/bpf_load.h
-	$(CC) $(CFLAGS) -o $@ -c $<
-
 $(LIBBPF_TARGET):
 	cd $(LIBBPF_DIR) && $(MAKE) all; \
 		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
 
-$(USER_TARGET): %: %.c %.h $(LIBBPF_TARGET)
+$(USER_TARGET): %: %.c $(USER_TARGET_DEPS) $(LIBBPF_TARGET)
 	$(CC) \
 		$(CFLAGS) \
 		-L$(LIBBPF_DIR) \
@@ -34,7 +34,7 @@ $(USER_TARGET): %: %.c %.h $(LIBBPF_TARGET)
 		-O2 -g -o $@ $< \
 		-l:libbpf.a -lbpf -lelf
 
-$(KERNEL_TARGET_OBJECT): %.o: %.c
+$(KERNEL_TARGET_OBJECT): %.o: %.c $(KERNEL_TARGET_DEPS)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
