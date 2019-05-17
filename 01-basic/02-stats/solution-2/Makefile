@@ -4,4 +4,7 @@ KERNEL_TARGET_DEPS=common.h
 USER_TARGET=stats_user
 USER_TARGET_DEPS=common.h
 
-include ../../common/makerules
+COMMON_DIR=../../../common
+LIBBPF_DIR=../../../libbpf/src
+
+include $(COMMON_DIR)/makerules
