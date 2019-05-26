@@ -24,6 +24,10 @@ CFLAGS += "-I/usr/include/x86_64-linux-gnu"
 all: $(KERNEL_TARGET_OBJECT) $(USER_TARGET)
 
 $(LIBBPF_TARGET):
+	@(if [ ! -d $(LIBBPF_SRC_DIR) ]; then \
+		echo "Missing libbpf submodule please run 'git submodule update --init --recursive' at the root of this repo."; \
+		exit 1; \
+	fi)
 	cd $(LIBBPF_SRC_DIR) \
 	&& mkdir -p $(LIBBPF_OUTPUT_DIR) \
 	&& OBJDIR=$(LIBBPF_OUTPUT_DIR) $(MAKE) all \
