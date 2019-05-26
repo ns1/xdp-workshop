@@ -3,6 +3,21 @@
 #include "pinning_user.h"
 
 /*
+    'xdp_flags' here is passed onto the the function that handles attaching the supplied XDP program,
+    to the supplied network device. It controls how the program is attached and various attributes that will
+    be applied once attached.
+
+    A full list of the flags possible pulled from
+    $(LINUX v5.0)/include/uapi/linux/if_link.h
+
+    #define XDP_FLAGS_UPDATE_IF_NOEXIST	(1U << 0)
+    #define XDP_FLAGS_SKB_MODE		    (1U << 1)
+    #define XDP_FLAGS_DRV_MODE		    (1U << 2)
+    #define XDP_FLAGS_HW_MODE		    (1U << 3)
+*/
+static __u32 xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+
+/*
     'handle_action' is the first time we will be using libbpf to update a BPF map from user space,
     so that the underlying XDP program can use this data to change how it responds to packets.
 */
@@ -67,6 +82,7 @@ static int detach(int if_index, char *prog_path)
     */
     struct bpf_object *bpf_obj;
     int bpf_prog_fd = -1;
+    int ret = 0;
 
     /*
         The following two calls 'bpf_prog_load' and 'bpf_set_link_xdp_fd' are the equivalent in libbpf as running:
@@ -81,10 +97,11 @@ static int detach(int if_index, char *prog_path)
 
         This will return a non-0 error code in the event something goes wrong.
     */
-    if (bpf_prog_load(prog_path, BPF_PROG_TYPE_XDP, &bpf_obj, &bpf_prog_fd) != 0)
+    ret = bpf_prog_load(prog_path, BPF_PROG_TYPE_XDP, &bpf_obj, &bpf_prog_fd);
+    if (ret != 0)
     {
         printf("ERR: Unable to load XDP program from file '%s' err(%d): %s\n",
-               prog_path, errno, strerror(errno));
+               prog_path, -ret, strerror(-ret));
         return EXIT_FAIL_XDP_DETACH;
     }
 
@@ -92,10 +109,11 @@ static int detach(int if_index, char *prog_path)
         'bpf_set_link_xdp_fd' is where the actuall detach magic happens, and it takes the interface index that is supplied,
         and '-1' as the second argument which signals to the kernel that there should be no XDP program attached to said index.
     */
-    if (bpf_set_link_xdp_fd(if_index, -1, 0) != 0)
+    ret = bpf_set_link_xdp_fd(if_index, -1, 0);
+    if (ret != 0)
     {
         printf("WARN: Cannont detach XDP program from specified device at index '%d' err(%d): %s\n",
-               if_index, errno, strerror(errno));
+               if_index, -ret, strerror(-ret));
     }
 
     /*
@@ -104,13 +122,41 @@ static int detach(int if_index, char *prog_path)
         This is the equivalent to running:
             'sudo rm -f /sys/fs/bpf/${map name}'
     */
-    if (bpf_object__unpin_maps(bpf_obj, MAP_DIR) != 0)
+    ret = bpf_object__unpin_maps(bpf_obj, MAP_DIR);
+    if (ret != 0)
     {
         printf("WARN: Unable to unpin the XDP program's '%s' maps from '%s' err(%d): %s\n",
-               prog_path, MAP_DIR, errno, strerror(errno));
+               prog_path, MAP_DIR, -ret, strerror(-ret));
     }
 
     return EXIT_OK;
+}
+
+/*
+    'load_section' uses libbpf to handle finding the supplied section inside of an already loaded and valid 'bpf_object'.
+
+    This specifically replaces the 'sec ${section name}' aspect of the call to iproute2.
+*/
+static int load_section(struct bpf_object *bpf_obj, char *section)
+{
+    struct bpf_program *bpf_prog;
+
+    /*
+        'bpf_object__find_program_by_title' handles searching the loaded 'bpf_object' from the last call for the given section title. If the supplied section title
+        either doesn't exist or is not a program section in the bpf_object this will return NULL, otherwise it will return a pointer the 'bpg_program' which you can,
+        then use to grab a program file descriptor using 'bpf_program__fd'.
+    */
+    bpf_prog = bpf_object__find_program_by_title(bpf_obj, section);
+    if (bpf_prog == NULL)
+    {
+        return -EINVAL;
+    }
+
+    /*
+        'bpf_program__fd' handles returning the correct file descriptor for the valid 'bpf_program' loaded from the last call. If for whatever reason this program is invalid,
+        in one way or another this call will return a negative error code. Otherwise this call returns the file descriptor for the given 'bpf_program'.
+    */
+    return bpf_program__fd(bpf_prog);
 }
 
 /*
@@ -118,17 +164,18 @@ static int detach(int if_index, char *prog_path)
 
     This replaces the process we ran through last time with iproute2 and bpftool to attach the program and pin its maps.
 */
-static int attach(int if_index, char *prog_path)
+static int attach(int if_index, char *prog_path, char *section)
 {
     /*
-        We need some storage objects for the resulting bpf object file and the file descriptor to the program contained
+        We need some storage objects for the resulting bpf object file and the file descriptor to the first program contained
         within the object.
     */
     struct bpf_object *bpf_obj;
     int bpf_prog_fd = -1;
+    int ret = 0;
 
     /*
-        The following two calls 'bpf_prog_load' and 'bpf_set_link_xdp_fd' are the equivalent in libbpf as running:
+        The following three calls 'bpf_prog_load', 'load_section', and 'bpf_set_link_xdp_fd' are the equivalent in libbpf as running:
             'sudo ip link set dev ${device name} xdp obj ${object file} sec ${section name}'
     */
 
@@ -140,11 +187,33 @@ static int attach(int if_index, char *prog_path)
 
         This will return a non-0 error code in the event something goes wrong.
     */
-    if (bpf_prog_load(prog_path, BPF_PROG_TYPE_XDP, &bpf_obj, &bpf_prog_fd) != 0)
+    ret = bpf_prog_load(prog_path, BPF_PROG_TYPE_XDP, &bpf_obj, &bpf_prog_fd);
+    if (ret != 0)
     {
         printf("ERR: Unable to load XDP program from file '%s' err(%d): %s\n",
-               prog_path, errno, strerror(errno));
+               prog_path, -ret, strerror(-ret));
         return EXIT_FAIL_XDP_ATTACH;
+    }
+
+    /*
+        'load_section' is a wrapper around a set of libbpf calls that locates and loads the given section name,
+        contained within the given loaded 'bpf_object'. The arguments are a 'bpf_object' pointer and the string
+        that represents the section name you want to load from the supplied 'bpf_object'.
+
+        This will return a negative error code if the section doesn't exist. Otherwise it returns the file descriptor
+        that represents the given section, which we can then use in the following call to 'bpf_set_link_xdp_fd'.
+    */
+    int section_fd = load_section(bpf_obj, section);
+    if (section_fd < 0)
+    {
+        printf("WARN: Unable to load section '%s' from load bpf object file '%s' err(%d): %s.\n",
+               section, prog_path, -section_fd, strerror(-section_fd));
+        printf("WARN: Falling back to first program in loaded bpf object file '%s'.\n",
+               prog_path);
+    }
+    else
+    {
+        bpf_prog_fd = section_fd;
     }
 
     /*
@@ -152,10 +221,11 @@ static int attach(int if_index, char *prog_path)
         and the bpf progarm file descriptor we got in the last call as the second argument which signals to the kernel that
         we want the specified XDP program attached to said index.
     */
-    if (bpf_set_link_xdp_fd(if_index, bpf_prog_fd, 0) != 0)
+    ret = bpf_set_link_xdp_fd(if_index, bpf_prog_fd, 0);
+    if (ret != 0)
     {
         printf("ERR: Unable to attach loaded XDP program to specified device index '%d' err(%d): %s\n",
-               if_index, errno, strerror(errno));
+               if_index, -ret, strerror(-ret));
         return EXIT_FAIL_XDP_ATTACH;
     }
 
@@ -166,10 +236,11 @@ static int attach(int if_index, char *prog_path)
             'sudo bpftool map list'
             'sudo bpftool map pin id ${map id} /sys/fs/bpf/${map name}'
     */
-    if (bpf_object__pin_maps(bpf_obj, MAP_DIR) != 0)
+    ret = bpf_object__pin_maps(bpf_obj, MAP_DIR);
+    if (ret != 0)
     {
         printf("ERR: Unable to pin the loaded and attached XDP program's maps to '%s' err(%d): %s\n",
-               MAP_DIR, errno, strerror(errno));
+               MAP_DIR, -ret, strerror(-ret));
         return EXIT_FAIL_XDP_MAP_PIN;
     }
 
@@ -182,6 +253,8 @@ int main(int argc, char **argv)
     int longindex = 0;
 
     char *prog_path = NULL;
+    char *section = NULL;
+
     int if_index = -1;
 
     bool should_detach = false;
@@ -195,7 +268,7 @@ int main(int argc, char **argv)
         return rlimit_ret;
     }
 
-    while ((opt = getopt_long(argc, argv, "hx::a:d:se:", long_options, &longindex)) != -1)
+    while ((opt = getopt_long(argc, argv, "hx::n::a:d:se:", long_options, &longindex)) != -1)
     {
         char *tmp_value = optarg;
         switch (opt)
@@ -206,6 +279,14 @@ int main(int argc, char **argv)
                 tmp_value = argv[optind++];
                 prog_path = alloca(strlen(tmp_value));
                 strcpy(prog_path, tmp_value);
+            }
+            break;
+        case 'n':
+            if (handle_optional_argument(argc, argv))
+            {
+                tmp_value = argv[optind++];
+                section = alloca(strlen(tmp_value));
+                strcpy(section, tmp_value);
             }
             break;
         case 'a':
@@ -256,7 +337,7 @@ int main(int argc, char **argv)
 
     if (should_attach)
     {
-        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path);
+        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path, section == NULL ? default_section : section);
     }
 
     if (action != NULL)

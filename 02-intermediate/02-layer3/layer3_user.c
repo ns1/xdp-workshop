@@ -2,8 +2,6 @@
 
 #include "layer3_user.h"
 
-char *default_prog_path = "layer3_kern.o";
-
 static int handle_mac(char *mac_addr, bool insert)
 {
     unsigned char mac[6];
@@ -116,6 +114,9 @@ int main(int argc, char **argv)
     int longindex = 0;
 
     char *prog_path = NULL;
+    char *section = NULL;
+    bool force = false;
+
     int if_index = -1;
 
     bool should_detach = false;
@@ -134,7 +135,7 @@ int main(int argc, char **argv)
     }
 
     /* Parse commands line args */
-    while ((opt = getopt_long(argc, argv, "hx::a:d:sirm:4:6:", long_options, &longindex)) != -1)
+    while ((opt = getopt_long(argc, argv, "hx::n::a:d:sirm:4:6:", long_options, &longindex)) != -1)
     {
         char *tmp_value = optarg;
         switch (opt)
@@ -145,6 +146,14 @@ int main(int argc, char **argv)
                 tmp_value = argv[optind++];
                 prog_path = alloca(strlen(tmp_value));
                 strcpy(prog_path, tmp_value);
+            }
+            break;
+        case 'n':
+            if (handle_optional_argument(argc, argv))
+            {
+                tmp_value = argv[optind++];
+                section = alloca(strlen(tmp_value));
+                strcpy(section, tmp_value);
             }
             break;
         case 'a':
@@ -209,7 +218,7 @@ int main(int argc, char **argv)
 
     if (should_attach)
     {
-        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path);
+        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path, section == NULL ? default_section : section);
     }
 
     if (mac_addr != NULL)

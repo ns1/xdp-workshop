@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
 #include "layer4_user.h"
-char *default_prog_path = "layer4_kern.o";
 
 static int handle_mac(char *mac_addr, bool insert)
 {
@@ -119,8 +118,7 @@ static int handle_port(char *port, bool add, bool udp, bool src)
     printf("%s %s port '%s/%s'\n", add ? "Adding" : "Removing",
            src ? "source" : "dest", port, udp ? "udp" : "tcp");
 
-    int map_fd =
-        open_bpf_map(udp ? UDP_PORT_BLACKLIST_PATH : TCP_PORT_BLACKLIST_PATH);
+    int map_fd = open_bpf_map(udp ? UDP_PORT_BLACKLIST_PATH : TCP_PORT_BLACKLIST_PATH);
     if (map_fd < 0)
     {
         return EXIT_FAIL_XDP_MAP_OPEN;
@@ -155,6 +153,8 @@ int main(int argc, char **argv)
     int longindex = 0;
 
     char *prog_path = NULL;
+    char *section = NULL;
+
     int if_index = -1;
 
     bool should_detach = false;
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     }
 
     /* Parse commands line args */
-    while ((opt = getopt_long(argc, argv, "hx::a:d:sirm:4:6:t:c:p:", long_options, &longindex)) != -1)
+    while ((opt = getopt_long(argc, argv, "hx::n::a:d:sirm:4:6:t:c:p:", long_options, &longindex)) != -1)
     {
         char *tmp_value = optarg;
         switch (opt)
@@ -189,6 +189,14 @@ int main(int argc, char **argv)
                 tmp_value = argv[optind++];
                 prog_path = alloca(strlen(tmp_value));
                 strcpy(prog_path, tmp_value);
+            }
+            break;
+        case 'n':
+            if (handle_optional_argument(argc, argv))
+            {
+                tmp_value = argv[optind++];
+                section = alloca(strlen(tmp_value));
+                strcpy(section, tmp_value);
             }
             break;
         case 'a':
@@ -276,7 +284,7 @@ int main(int argc, char **argv)
 
     if (should_attach)
     {
-        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path);
+        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path, section == NULL ? default_section : section);
     }
 
     if (mac_addr != NULL)

@@ -7,6 +7,8 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <errno.h>
+#include <linux/if_link.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/resource.h>
@@ -33,12 +35,14 @@ static int str2action(const char *action)
 }
 
 static char *default_prog_path = "pinning_kern.o";
+static char *default_section = "stats";
 
 static const char *doc = "XDP: Map pinning and loading/unloading\n";
 
 static const struct option long_options[] = {
     {"help", no_argument, NULL, 'h'},
     {"xdp-program", optional_argument, NULL, 'x'},
+    {"xdp-section", optional_argument, NULL, 'n'},
     {"attach", required_argument, NULL, 'a'},
     {"detach", required_argument, NULL, 'd'},
     {"stats", no_argument, NULL, 's'},
@@ -48,10 +52,11 @@ static const struct option long_options[] = {
 static const char *long_options_descriptions[] = {
     [0] = "Display this help message.",
     [1] = "The file path to the xdp program to load.",
-    [2] = "Attach the specified XDP program to the specified network device.",
-    [3] = "Detach the specified XDP program from the specified network device.",
-    [4] = "Print statistics from the already loaded XDP program.",
-    [5] = "Set the XDP action for the XDP program to return.",
+    [2] = "The section name to load from the given xdp program.",
+    [3] = "Attach the specified XDP program to the specified network device.",
+    [4] = "Detach the specified XDP program from the specified network device.",
+    [5] = "Print statistics from the already loaded XDP program.",
+    [6] = "Set the XDP action for the XDP program to return.",
 };
 
 #endif /* _PINNING_USER_H */

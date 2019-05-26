@@ -2,14 +2,14 @@
 
 #include "tcbit_user.h"
 
-char *default_prog_path = "tcbit_kern.o";
-
 int main(int argc, char **argv)
 {
     int opt;
     int longindex = 0;
 
     char *prog_path = NULL;
+    char *section = NULL;
+
     int if_index = -1;
 
     bool should_detach = false;
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     }
 
     /* Parse commands line args */
-    while ((opt = getopt_long(argc, argv, "hx::a:d:s", long_options, &longindex)) != -1)
+    while ((opt = getopt_long(argc, argv, "hx::n::a:d:s", long_options, &longindex)) != -1)
     {
         char *tmp_value = optarg;
         switch (opt)
@@ -33,6 +33,14 @@ int main(int argc, char **argv)
                 tmp_value = argv[optind++];
                 prog_path = alloca(strlen(tmp_value));
                 strcpy(prog_path, tmp_value);
+            }
+            break;
+        case 'n':
+            if (handle_optional_argument(argc, argv))
+            {
+                tmp_value = argv[optind++];
+                section = alloca(strlen(tmp_value));
+                strcpy(section, tmp_value);
             }
             break;
         case 'a':
@@ -79,7 +87,7 @@ int main(int argc, char **argv)
 
     if (should_attach)
     {
-        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path);
+        return attach(if_index, prog_path == NULL ? default_prog_path : prog_path, section == NULL ? default_section : section);
     }
 
     return EXIT_OK;
