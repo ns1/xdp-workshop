@@ -7,6 +7,19 @@
 #include "common.h"
 #include "structs.h"
 
+static __always_inline struct context to_ctx(struct xdp_md *xdp_ctx)
+{
+    struct context ctx = {
+        .data_start = (void *)(long)xdp_ctx->data,
+        .data_end = (void *)(long)xdp_ctx->data_end,
+        .nh_proto = 0,
+        .nh_offset = 0,
+    };
+    ctx.length = ctx.data_end - ctx.data_start;
+
+    return ctx;
+}
+
 struct bpf_map_def SEC("maps") action_counters = {
     .type = BPF_MAP_TYPE_PERCPU_ARRAY,
     .key_size = sizeof(__u32),
@@ -14,26 +27,7 @@ struct bpf_map_def SEC("maps") action_counters = {
     .max_entries = XDP_MAX_ACTIONS,
 };
 
-static __always_inline void *get_data(struct xdp_md *ctx)
-{
-    return (void *)(long)ctx->data;
-}
-
-static __always_inline void *get_data_end(struct xdp_md *ctx)
-{
-    return (void *)(long)ctx->data_end;
-}
-
-static __always_inline __u64 get_length(struct xdp_md *ctx)
-{
-    void *data_end = get_data_end(ctx);
-    void *data = get_data(ctx);
-
-    return data_end - data;
-}
-
-static __always_inline __u32 update_action_stats(struct xdp_md *ctx,
-                                                 __u32 action)
+static __always_inline __u32 update_action_stats(struct context ctx, __u32 action)
 {
     struct counters *counters = bpf_map_lookup_elem(&action_counters, &action);
     if (!counters)
@@ -42,7 +36,7 @@ static __always_inline __u32 update_action_stats(struct xdp_md *ctx,
     }
 
     counters->packets += 1;
-    counters->bytes += get_length(ctx);
+    counters->bytes += ctx.length;
 
     return action;
 }

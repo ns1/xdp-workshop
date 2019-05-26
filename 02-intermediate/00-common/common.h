@@ -3,6 +3,16 @@
 
 #include <linux/types.h>
 
+struct context
+{
+    void *data_start;
+    void *data_end;
+    __u32 length;
+
+    __u32 nh_proto;
+    __u32 nh_offset;
+};
+
 /* Pulled from $(LINUX)/include/linux/if_vlan.h#L38 */
 struct vlan_hdr
 {
@@ -10,10 +20,8 @@ struct vlan_hdr
     __be16 h_vlan_encapsulated_proto;
 };
 
-static const int v4_lpm_trie_key_size =
-    sizeof(struct bpf_lpm_trie_key) + sizeof(__u32);
-static const int v6_lpm_trie_key_size =
-    sizeof(struct bpf_lpm_trie_key) + sizeof(__u32) * 4;
+static const int v4_lpm_trie_key_size = sizeof(struct bpf_lpm_trie_key) + sizeof(__u32);
+static const int v6_lpm_trie_key_size = sizeof(struct bpf_lpm_trie_key) + sizeof(__u32) * 4;
 
 struct lpm_v4_key
 {

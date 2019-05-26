@@ -8,12 +8,11 @@
 
 #include "layer2_maps.h"
 
-static __always_inline __u32 parse_eth(struct xdp_md *ctx, __u32 *nh_offset, __u32 *nh_proto)
+static __always_inline __u32 parse_eth(struct context *ctx)
 {
-    void *data_end = get_data_end(ctx);
-    struct ethhdr *eth = get_data(ctx) + *nh_offset;
+    struct ethhdr *eth = ctx->data_start + ctx->nh_offset;
 
-    if (eth + 1 > data_end)
+    if (eth + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
@@ -23,22 +22,22 @@ static __always_inline __u32 parse_eth(struct xdp_md *ctx, __u32 *nh_offset, __u
         return XDP_DROP;
     }
 
-    *nh_offset += sizeof(*eth);
-    *nh_proto = bpf_ntohs(eth->h_proto);
+    ctx->nh_offset += sizeof(*eth);
+    ctx->nh_proto = bpf_ntohs(eth->h_proto);
 
 #pragma unroll
     for (int i = 0; i < 2; i++)
     {
-        if (*nh_proto == ETH_P_8021Q || *nh_proto == ETH_P_8021AD)
+        if (ctx->nh_proto == ETH_P_8021Q || ctx->nh_proto == ETH_P_8021AD)
         {
-            struct vlan_hdr *vlan = get_data(ctx) + *nh_offset;
-            if (vlan + 1 > data_end)
+            struct vlan_hdr *vlan = ctx->data_start + ctx->nh_offset;
+            if (vlan + 1 > ctx->data_end)
             {
                 return XDP_DROP;
             }
 
-            *nh_offset += sizeof(*vlan);
-            *nh_proto = bpf_ntohs(vlan->h_vlan_encapsulated_proto);
+            ctx->nh_offset += sizeof(*vlan);
+            ctx->nh_proto = bpf_ntohs(vlan->h_vlan_encapsulated_proto);
         }
     }
 
@@ -46,14 +45,13 @@ static __always_inline __u32 parse_eth(struct xdp_md *ctx, __u32 *nh_offset, __u
 }
 
 SEC("layer2")
-int layer2_fn(struct xdp_md *ctx)
+int layer2_fn(struct xdp_md *xdp_ctx)
 {
     __u32 action = XDP_PASS;
 
-    __u32 nh_offset = 0;
-    __u32 nh_proto = 0;
+    struct context ctx = to_ctx(xdp_ctx);
 
-    action = parse_eth(ctx, &nh_offset, &nh_proto);
+    action = parse_eth(&ctx);
     if (action != XDP_PASS)
     {
         goto ret;

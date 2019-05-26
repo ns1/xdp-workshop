@@ -5,7 +5,6 @@
 #include <linux/if_ether.h>
 
 #include "bpf_helpers.h"
-#include "structs.h"
 
 struct bpf_map_def SEC("maps") mac_blacklist = {
     .type = BPF_MAP_TYPE_HASH,

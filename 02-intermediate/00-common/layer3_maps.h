@@ -4,7 +4,6 @@
 #include <linux/bpf.h>
 
 #include "bpf_helpers.h"
-#include "structs.h"
 
 struct bpf_map_def SEC("maps") v4_blacklist = {
     .type = BPF_MAP_TYPE_LPM_TRIE,
