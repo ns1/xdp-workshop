@@ -13,6 +13,9 @@ layer4_user
 tcbit_user
 loadshed_user
 
+# Compiled libbpf objects and includes
+common/libbpf
+
 # IDE/Editor specific directories/files
 .vscode/
 

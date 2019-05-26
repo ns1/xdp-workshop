@@ -2,8 +2,8 @@ CC ?= gcc
 LLC ?= llc
 CLANG ?= clang
 
-COMMON_DIR ?= ../../common
-LIBBPF_DIR ?= ../../libbpf/src
+COMMON_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+COMMON_HEADERS = $(wildcard $(COMMON_DIR)/headers/*.h)
 
 KERNEL_TARGET_OBJECT = ${KERNEL_TARGET:=.o}
 KERNEL_TARGET_LLC_OBJECT = ${KERNEL_TARGET:=.ll}
@@ -11,30 +11,34 @@ KERNEL_TARGET_DEPS ?=
 
 USER_TARGET_DEPS ?=
 
-LIBBPF_TARGET = $(LIBBPF_DIR)/libbpf.a
+LIBBPF_SRC_DIR = $(COMMON_DIR)../libbpf/src
+LIBBPF_OUTPUT_DIR = $(COMMON_DIR)/libbpf
+LIBBPF_TARGET = $(LIBBPF_OUTPUT_DIR)/libbpf.a
 
 CFLAGS ?=
 CFLAGS += "-I$(COMMON_DIR)/headers/"
-CFLAGS += "-I$(LIBBPF_DIR)/root/usr/include/"
+CFLAGS += "-I$(LIBBPF_OUTPUT_DIR)/usr/include/"
 CFLAGS += "-I/usr/include/x86_64-linux-gnu"
 
 .PHONY: all
 all: $(KERNEL_TARGET_OBJECT) $(USER_TARGET)
 
 $(LIBBPF_TARGET):
-	cd $(LIBBPF_DIR) && $(MAKE) all; \
-		mkdir -p root; DESTDIR=root $(MAKE) install_headers; \
+	cd $(LIBBPF_SRC_DIR) \
+	&& mkdir -p $(LIBBPF_OUTPUT_DIR) \
+	&& OBJDIR=$(LIBBPF_OUTPUT_DIR) $(MAKE) all \
+	&& DESTDIR=$(LIBBPF_OUTPUT_DIR) $(MAKE) install_headers
 
-$(USER_TARGET): %: %.c $(USER_TARGET_DEPS) $(LIBBPF_TARGET)
+$(USER_TARGET): %: %.c $(USER_TARGET_DEPS) $(LIBBPF_TARGET) $(COMMON_HEADERS)
 	$(CC) \
 		$(CFLAGS) \
-		-L$(LIBBPF_DIR) \
+		-L$(LIBBPF_OUTPUT_DIR) \
 		-Wall \
 		-Wno-unused-variable \
 		-O2 -g -o $@ $< \
 		-l:libbpf.a -lbpf -lelf
 
-$(KERNEL_TARGET_OBJECT): %.o: %.c $(KERNEL_TARGET_DEPS)
+$(KERNEL_TARGET_OBJECT): %.o: %.c $(KERNEL_TARGET_DEPS) $(COMMON_HEADERS)
 	$(CLANG) -S \
 	    -target bpf \
 	    -D __BPF_TRACING__ \
@@ -47,3 +51,11 @@ $(KERNEL_TARGET_OBJECT): %.o: %.c $(KERNEL_TARGET_DEPS)
 .PHONY: clean
 clean:
 	rm -f *.ll *.o $(USER_TARGET)
+
+.PHONY: clean-libbpf
+clean-libbpf:
+	rm -rf $(LIBBPF_OUTPUT_DIR)
+
+.PHONY: test
+test:
+	echo $(abspath $(lastword $(MAKEFILE_LIST)))
