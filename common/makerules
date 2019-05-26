@@ -59,7 +59,3 @@ clean:
 .PHONY: clean-libbpf
 clean-libbpf:
 	rm -rf $(LIBBPF_OUTPUT_DIR)
-
-.PHONY: test
-test:
-	echo $(abspath $(lastword $(MAKEFILE_LIST)))
