@@ -15,10 +15,6 @@
 #define XDP_CONTINUE XDP_MAX_ACTIONS
 #endif
 
-#ifndef MAX_VLAN_DEPTH
-#define MAX_VLAN_DEPTH 10
-#endif
-
 /* Pulled from $(LINUX)/include/linux/if_vlan.h#L38 */
 struct vlan_hdr
 {
@@ -26,28 +22,24 @@ struct vlan_hdr
     __be16 h_vlan_encapsulated_proto;
 };
 
-struct metadata
+struct context
 {
-    __u32 nh_offset;
+    void *data_start;
+    void *data_end;
+    __u32 length;
+
     __u32 nh_proto;
+    __u32 nh_offset;
 
     struct ethhdr *eth;
     struct iphdr *v4;
     struct ipv6hdr *v6;
     struct udphdr *udp;
     struct dnshdr *dns;
-    struct dnshdr_compare *dns_compare;
 };
 
-struct dnshdr_compare
+struct dns_flag_bits
 {
-    __u16 id;
-    __u16 flags;
-};
-
-struct dnshdr
-{
-    __u16 id;
     __u16 rd : 1,
         tc : 1,
         aa : 1,
@@ -56,6 +48,17 @@ struct dnshdr
         rcode : 4,
         zero : 3,
         ra : 1;
+};
+
+union dns_flags {
+    __u16 data;
+    struct dns_flag_bits bits;
+};
+
+struct dnshdr
+{
+    __u16 id;
+    union dns_flags flags;
 };
 
 #endif /* _COMMON_H */

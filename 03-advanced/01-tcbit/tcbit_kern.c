@@ -7,39 +7,37 @@
 
 #include "utils.h"
 
-#define bpf_debug(fmt, ...)                        \
-    ({                                             \
-        char ____fmt[] = fmt;                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), \
-                         ##__VA_ARGS__);           \
+#define bpf_debug(fmt, ...)                                        \
+    ({                                                             \
+        char ____fmt[] = fmt;                                      \
+        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
     })
 
-static __always_inline __u32 parse_eth(struct xdp_md *ctx, struct metadata *meta)
+static __always_inline __u32 parse_eth(struct context *ctx)
 {
-    void *data_end = get_data_end(ctx);
-    meta->eth = get_data(ctx) + meta->nh_offset;
+    ctx->eth = ctx->data_start + ctx->nh_offset;
 
-    if (meta->eth + 1 > data_end)
+    if (ctx->eth + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
 
-    meta->nh_offset += sizeof(struct ethhdr);
-    meta->nh_proto = bpf_ntohs(meta->eth->h_proto);
+    ctx->nh_offset += sizeof(struct ethhdr);
+    ctx->nh_proto = bpf_ntohs(ctx->eth->h_proto);
 
 #pragma unroll
-    for (int i = 0; i < MAX_VLAN_DEPTH; i++)
+    for (int i = 0; i < 2; i++)
     {
-        if (meta->nh_proto == ETH_P_8021Q || meta->nh_proto == ETH_P_8021AD)
+        if (ctx->nh_proto == ETH_P_8021Q || ctx->nh_proto == ETH_P_8021AD)
         {
-            struct vlan_hdr *vlan = get_data(ctx) + meta->nh_offset;
-            if (vlan + 1 > data_end)
+            struct vlan_hdr *vlan = ctx->data_start + ctx->nh_offset;
+            if (vlan + 1 > ctx->data_end)
             {
                 return XDP_DROP;
             }
 
-            meta->nh_offset += sizeof(*vlan);
-            meta->nh_proto = bpf_ntohs(vlan->h_vlan_encapsulated_proto);
+            ctx->nh_offset += sizeof(*vlan);
+            ctx->nh_proto = bpf_ntohs(vlan->h_vlan_encapsulated_proto);
         }
         return XDP_CONTINUE;
     }
@@ -47,51 +45,48 @@ static __always_inline __u32 parse_eth(struct xdp_md *ctx, struct metadata *meta
     return XDP_CONTINUE;
 }
 
-static __always_inline __u32 parse_v4(struct xdp_md *ctx, struct metadata *meta)
+static __always_inline __u32 parse_v4(struct context *ctx)
 {
-    void *data_end = get_data_end(ctx);
-    meta->v4 = get_data(ctx) + meta->nh_offset;
+    ctx->v4 = ctx->data_start + ctx->nh_offset;
 
-    if (meta->v4 + 1 > data_end)
+    if (ctx->v4 + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
 
-    meta->nh_offset += meta->v4->ihl * 4;
-    meta->nh_proto = meta->v4->protocol;
+    ctx->nh_offset += ctx->v4->ihl * 4;
+    ctx->nh_proto = ctx->v4->protocol;
 
     return XDP_CONTINUE;
 }
 
-static __always_inline __u32 parse_v6(struct xdp_md *ctx, struct metadata *meta)
+static __always_inline __u32 parse_v6(struct context *ctx)
 {
-    void *data_end = get_data_end(ctx);
-    meta->v6 = get_data(ctx) + meta->nh_offset;
+    ctx->v6 = ctx->data_start + ctx->nh_offset;
 
-    if (meta->v6 + 1 > data_end)
+    if (ctx->v6 + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
 
-    meta->nh_offset += sizeof(struct ipv6hdr);
-    meta->nh_proto = meta->v6->nexthdr;
+    ctx->nh_offset += sizeof(struct ipv6hdr);
+    ctx->nh_proto = ctx->v6->nexthdr;
 
     return XDP_CONTINUE;
 }
 
-static __always_inline __u32 parse_udp(struct xdp_md *ctx, struct metadata *meta)
+static __always_inline __u32 parse_udp(struct context *ctx)
 {
-    void *data_end = get_data_end(ctx);
-    meta->udp = get_data(ctx) + meta->nh_offset;
+    ctx->udp = ctx->data_start + ctx->nh_offset;
 
-    if (meta->udp + 1 > data_end)
+    if (ctx->udp + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
 
-    meta->nh_offset += sizeof(struct udphdr);
+    ctx->nh_offset += sizeof(struct udphdr);
 
-    if (bpf_ntohs(meta->udp->dest) == 53)
+    if (bpf_ntohs(ctx->udp->dest) == 53)
     {
         return XDP_CONTINUE;
     }
@@ -118,68 +113,65 @@ static __always_inline void csum_update(__u16 *csum, __u32 from, __u32 to)
     *csum = (__u16)~sum;
 }
 
-static __always_inline void swap_mac(struct metadata *meta)
+static __always_inline void swap_mac(struct context *ctx)
 {
     __u8 temp[6];
-    __builtin_memcpy(temp, meta->eth->h_dest, sizeof(temp));
-    __builtin_memcpy(meta->eth->h_dest, meta->eth->h_source, sizeof(temp));
-    __builtin_memcpy(meta->eth->h_source, temp, sizeof(temp));
+    __builtin_memcpy(temp, ctx->eth->h_dest, sizeof(temp));
+    __builtin_memcpy(ctx->eth->h_dest, ctx->eth->h_source, sizeof(temp));
+    __builtin_memcpy(ctx->eth->h_source, temp, sizeof(temp));
 }
 
-static __always_inline void swap_ip(struct metadata *meta)
+static __always_inline void swap_ip(struct context *ctx)
 {
-    if (meta->v4)
+    if (ctx->v4)
     {
         __be32 temp;
-        __builtin_memcpy(&temp, &meta->v4->daddr, sizeof(temp));
-        __builtin_memcpy(&meta->v4->daddr, &meta->v4->saddr, sizeof(temp));
-        __builtin_memcpy(&meta->v4->saddr, &temp, sizeof(temp));
+        __builtin_memcpy(&temp, &ctx->v4->daddr, sizeof(temp));
+        __builtin_memcpy(&ctx->v4->daddr, &ctx->v4->saddr, sizeof(temp));
+        __builtin_memcpy(&ctx->v4->saddr, &temp, sizeof(temp));
 
-        __u8 old_ttl = meta->v4->ttl;
-        meta->v4->ttl = 64;
+        __u8 old_ttl = ctx->v4->ttl;
+        ctx->v4->ttl = 64;
 
-        csum_update(&meta->v4->check, old_ttl, meta->v4->ttl);
+        csum_update(&ctx->v4->check, old_ttl, ctx->v4->ttl);
     }
-    else if (meta->v6)
+    else if (ctx->v6)
     {
         struct in6_addr temp;
-        __builtin_memcpy(&temp, &meta->v6->daddr, sizeof(temp));
-        __builtin_memcpy(&meta->v6->daddr, &meta->v6->saddr, sizeof(temp));
-        __builtin_memcpy(&meta->v6->saddr, &temp, sizeof(temp));
+        __builtin_memcpy(&temp, &ctx->v6->daddr, sizeof(temp));
+        __builtin_memcpy(&ctx->v6->daddr, &ctx->v6->saddr, sizeof(temp));
+        __builtin_memcpy(&ctx->v6->saddr, &temp, sizeof(temp));
 
-        meta->v6->hop_limit = 64;
+        ctx->v6->hop_limit = 64;
     }
 }
 
-static __always_inline void swap_ports(struct metadata *meta)
+static __always_inline void swap_ports(struct context *ctx)
 {
     __be16 temp;
-    __builtin_memcpy(&temp, &meta->udp->dest, sizeof(temp));
-    __builtin_memcpy(&meta->udp->dest, &meta->udp->source, sizeof(temp));
-    __builtin_memcpy(&meta->udp->source, &temp, sizeof(temp));
+    __builtin_memcpy(&temp, &ctx->udp->dest, sizeof(temp));
+    __builtin_memcpy(&ctx->udp->dest, &ctx->udp->source, sizeof(temp));
+    __builtin_memcpy(&ctx->udp->source, &temp, sizeof(temp));
 }
 
 SEC("tcbit")
-int tcbit_fn(struct xdp_md *ctx)
+int tcbit_fn(struct xdp_md *xdp_ctx)
 {
-    struct metadata meta = {
-        .nh_offset = 0,
-        .nh_proto = 0,
-    };
+    struct context ctx = to_ctx(xdp_ctx);
 
-    int action = parse_eth(ctx, &meta);
+    int action = parse_eth(&ctx);
     if (action != XDP_CONTINUE)
     {
         goto ret;
     }
 
-    switch (meta.nh_proto)
+    switch (ctx.nh_proto)
     {
     case ETH_P_IP:
-        action = parse_v4(ctx, &meta);
+        action = parse_v4(&ctx);
         break;
     case ETH_P_IPV6:
-        action = parse_v6(ctx, &meta);
+        action = parse_v6(&ctx);
         break;
     default:
         action = XDP_PASS;
@@ -190,10 +182,10 @@ int tcbit_fn(struct xdp_md *ctx)
         goto ret;
     }
 
-    switch (meta.nh_proto)
+    switch (ctx.nh_proto)
     {
     case IPPROTO_UDP:
-        action = parse_udp(ctx, &meta);
+        action = parse_udp(&ctx);
         break;
     default:
         action = XDP_PASS;
@@ -204,33 +196,31 @@ int tcbit_fn(struct xdp_md *ctx)
         goto ret;
     }
 
-    void *data_end = get_data_end(ctx);
-    meta.dns = get_data(ctx) + meta.nh_offset;
-    meta.dns_compare = get_data(ctx) + meta.nh_offset;
+    ctx.dns = ctx.data_start + ctx.nh_offset;
 
-    if (meta.dns + 1 > data_end)
+    if (ctx.dns + 1 > ctx.data_end)
     {
         action = XDP_PASS;
         goto ret;
     }
 
-    __u16 old_flags = meta.dns_compare->flags;
+    __u16 old_flags = ctx.dns->flags.data;
 
-    meta.dns->qr = 1;
-    meta.dns->opcode = 0;
-    meta.dns->aa = 0;
-    meta.dns->tc = 1;
-    meta.dns->ra = 1;
+    ctx.dns->flags.bits.qr = 1;
+    ctx.dns->flags.bits.opcode = 0;
+    ctx.dns->flags.bits.aa = 0;
+    ctx.dns->flags.bits.tc = 1;
+    ctx.dns->flags.bits.ra = 1;
 
-    csum_update(&meta.udp->check, old_flags, meta.dns_compare->flags);
+    csum_update(&ctx.udp->check, old_flags, ctx.dns->flags.data);
 
-    swap_mac(&meta);
-    swap_ip(&meta);
-    swap_ports(&meta);
+    swap_mac(&ctx);
+    swap_ip(&ctx);
+    swap_ports(&ctx);
 
     action = XDP_TX;
 ret:
-    return update_action_stats(ctx, action);
+    return update_action_stats(&ctx, action);
 }
 
 char _license[] SEC("license") = "GPL";
