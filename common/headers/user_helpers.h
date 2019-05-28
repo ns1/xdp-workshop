@@ -4,7 +4,6 @@
 #define _USER_HELPERS_H
 
 #include <bpf/bpf.h>
-// #include <bpf/libbpf.h>
 #include <errno.h>
 #include <net/if.h>
 #include <stdio.h>
@@ -78,6 +77,7 @@ static int get_action_stats(int fd)
             overall.bytes += values[j].bytes;
             overall.packets += values[j].packets;
         }
+
         printf("Action '%s':\n\tPackets: %llu\n\tBytes:   %llu Bytes\n\n",
                action2str(i), overall.packets, overall.bytes);
     }

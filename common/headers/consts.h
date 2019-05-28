@@ -3,6 +3,8 @@
 #ifndef _CONSTS_H
 #define _CONSTS_H
 
+#include <linux/bpf.h>
+
 /* Exit codes */
 #define EXIT_OK 0
 #define EXIT_FAIL_GENERIC 1
@@ -14,9 +16,10 @@
 #define EXIT_FAIL_XDP_MAP_OPEN 5
 #define EXIT_FAIL_XDP_MAP_LOOKUP 6
 #define EXIT_FAIL_XDP_MAP_UPDATE 7
-#define EXIT_FAIL_XDP_MAP_PIN 8
+#define EXIT_FAIL_XDP_MAP_DELETE 8
+#define EXIT_FAIL_XDP_MAP_PIN 9
 
-#define EXIT_FAIL_RLIMIT 9
+#define EXIT_FAIL_RLIMIT 10
 
 #define MAP_DIR "/sys/fs/bpf"
 #define COUNTER_MAP_PATH "/sys/fs/bpf/action_counters"

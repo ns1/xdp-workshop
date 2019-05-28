@@ -1,7 +1,10 @@
-#ifndef _LAYER2_USER_H
-#define _LAYER2_USER_H
+// SPDX-License-Identifier: GPL-2.0
+
+#ifndef _LAYER4_USER_H
+#define _LAYER4_USER_H
 
 #include <alloca.h>
+#include <arpa/inet.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <errno.h>
@@ -19,11 +22,14 @@
 #include "xdp_prog_helpers.h"
 
 #define MAC_BLACKLIST_PATH "/sys/fs/bpf/mac_blacklist"
+#define V4_BLACKLIST_PATH "/sys/fs/bpf/v4_blacklist"
+#define V6_BLACKLIST_PATH "/sys/fs/bpf/v6_blacklist"
+#define PORT_BLACKLIST_PATH "/sys/fs/bpf/port_blacklist"
 
-static char *default_prog_path = "layer2_kern.o";
-static char *default_section = "layer2";
+static char *default_prog_path = "xdpfw_kern.o";
+static char *default_section = "xdpfw";
 
-static const char *doc = "XDP: Layer 2 firewall\n";
+static const char *doc = "XDP: Basic firewall\n";
 
 static const struct option long_options[] = {
     {"help", no_argument, NULL, 'h'},
@@ -35,6 +41,11 @@ static const struct option long_options[] = {
     {"insert", no_argument, NULL, 'i'},
     {"remove", no_argument, NULL, 'r'},
     {"mac-blacklist", required_argument, NULL, 'm'},
+    {"v4-blacklist", required_argument, NULL, '4'},
+    {"v6-blacklist", required_argument, NULL, '6'},
+    {"dest-port", required_argument, NULL, 't'},
+    {"src-port", required_argument, NULL, 'c'},
+    {"proto", required_argument, NULL, 'p'},
     {0, 0, NULL, 0}};
 
 static const char *long_options_descriptions[] = {
@@ -48,6 +59,13 @@ static const char *long_options_descriptions[] = {
     [7] = "Remove the specified value from the blacklist.",
     [8] = "Insert/Remove the spcified MAC address to/from the blacklist. Must "
           "be in the form '00:00:00:00:00:00'.",
+    [9] = "Insert/Remove the specified IPv4 prefix to/from the blacklist. Must "
+          "be in CIDR notation.",
+    [10] = "Insert/Remove the specified IPv6 prefix to/from the blacklist. Must "
+           "be in CIDR notation.",
+    [11] = "Insert/Remove the specified destination port to the blacklist.",
+    [12] = "Insert/Remove the specified source port to the blacklist.",
+    [13] = "Set the protocol for the specified source/destination port.",
 };
 
-#endif /* _LAYER2_USER_H */
+#endif /* _LAYER4_USER_H */
