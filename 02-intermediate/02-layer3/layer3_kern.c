@@ -129,7 +129,7 @@ int layer3_fn(struct xdp_md *xdp_ctx)
     }
 
 ret:
-    return update_action_stats(ctx, action);
+    return update_action_stats(&ctx, action);
 }
 
 char _license[] SEC("license") = "GPL";

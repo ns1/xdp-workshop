@@ -112,7 +112,7 @@ static int handle_port(char *port, bool add, bool udp, bool src)
 {
     struct port_key *key = alloca(sizeof(struct port_key));
 
-    key->direction = src ? SOURCE_PORT : DEST_PORT;
+    key->type = src ? source_port : destination_port;
     key->port = atoi(port);
 
     printf("%s %s port '%s/%s'\n", add ? "Adding" : "Removing",

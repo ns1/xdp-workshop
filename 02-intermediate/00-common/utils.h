@@ -27,7 +27,7 @@ struct bpf_map_def SEC("maps") action_counters = {
     .max_entries = XDP_MAX_ACTIONS,
 };
 
-static __always_inline __u32 update_action_stats(struct context ctx, __u32 action)
+static __always_inline __u32 update_action_stats(struct context *ctx, __u32 action)
 {
     struct counters *counters = bpf_map_lookup_elem(&action_counters, &action);
     if (!counters)
@@ -36,7 +36,7 @@ static __always_inline __u32 update_action_stats(struct context ctx, __u32 actio
     }
 
     counters->packets += 1;
-    counters->bytes += ctx.length;
+    counters->bytes += ctx->length;
 
     return action;
 }

@@ -35,12 +35,15 @@ struct lpm_v6_key
     __u8 padding[16];
 };
 
-static const __u16 SOURCE_PORT = 0;
-static const __u16 DEST_PORT = 1;
+enum port_type
+{
+    source_port,
+    destination_port,
+};
 
 struct port_key
 {
-    __u16 direction;
+    enum port_type type;
     __u16 port;
 };
 

@@ -106,24 +106,19 @@ static __always_inline __u32 parse_udp(struct context *ctx)
 {
     struct udphdr *udp = ctx->data_start + ctx->nh_offset;
 
-    struct port_key src_key = {
-        .direction = SOURCE_PORT,
-        .port = 0,
-    };
-    struct port_key dst_key = {
-        .direction = DEST_PORT,
-        .port = 0,
-    };
-
     if (udp + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
 
-    src_key.direction = SOURCE_PORT;
-    src_key.port = bpf_ntohs(udp->source);
+    struct port_key src_key = {
+        .type = source_port,
+    };
+    struct port_key dst_key = {
+        .type = destination_port,
+    };
 
-    dst_key.direction = DEST_PORT;
+    src_key.port = bpf_ntohs(udp->source);
     dst_key.port = bpf_ntohs(udp->dest);
 
     if (bpf_map_lookup_elem(&udp_port_blacklist, &src_key) ||
@@ -139,24 +134,19 @@ static __always_inline __u32 parse_tcp(struct context *ctx)
 {
     struct tcphdr *tcp = ctx->data_start + ctx->nh_offset;
 
-    struct port_key src_key = {
-        .direction = SOURCE_PORT,
-        .port = 0,
-    };
-    struct port_key dst_key = {
-        .direction = DEST_PORT,
-        .port = 0,
-    };
-
     if (tcp + 1 > ctx->data_end)
     {
         return XDP_DROP;
     }
 
-    src_key.direction = SOURCE_PORT;
-    src_key.port = bpf_ntohs(tcp->source);
+    struct port_key src_key = {
+        .type = source_port,
+    };
+    struct port_key dst_key = {
+        .type = destination_port,
+    };
 
-    dst_key.direction = DEST_PORT;
+    src_key.port = bpf_ntohs(tcp->source);
     dst_key.port = bpf_ntohs(tcp->dest);
 
     if (bpf_map_lookup_elem(&tcp_port_blacklist, &src_key) ||
@@ -211,7 +201,7 @@ int layer4_fn(struct xdp_md *xdp_ctx)
     }
 
 ret:
-    return update_action_stats(ctx, action);
+    return update_action_stats(&ctx, action);
 }
 
 char _license[] SEC("license") = "GPL";
