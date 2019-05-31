@@ -5,11 +5,7 @@
 # Compiled userspace programs
 stats_user
 pinning_user
-
-layer2_user
-layer3_user
-layer4_user
-
+xdpfw_user
 tcbit_user
 loadshed_user
 
