@@ -7,7 +7,7 @@
 
 #include "kernel/bpf_helpers.h"
 
-#include "common/structs.h"
+#include "workshop/common.h"
 
 #define bpf_debug(fmt, ...)                                        \
     ({                                                             \

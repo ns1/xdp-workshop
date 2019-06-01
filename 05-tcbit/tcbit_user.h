@@ -15,11 +15,12 @@
 
 #include "kernel/bpf_util.h"
 
-#include "common/consts.h"
-#include "common/options.h"
-#include "common/structs.h"
-#include "common/user_helpers.h"
-#include "common/xdp_prog_helpers.h"
+#include "workshop/common.h"
+#include "workshop/user/constants.h"
+#include "workshop/user/map_helpers.h"
+#include "workshop/user/options.h"
+#include "workshop/user/prog_helpers.h"
+#include "workshop/user/utils.h"
 
 #include "common.h"
 

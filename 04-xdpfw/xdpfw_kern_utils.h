@@ -8,7 +8,7 @@
 #include "kernel/bpf_endian.h"
 #include "kernel/bpf_helpers.h"
 
-#include "common/structs.h"
+#include "workshop/common.h"
 
 #include "common.h"
 

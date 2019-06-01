@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0
 
-#ifndef _XDP_PROG_HELPERS_H
-#define _XDP_PROG_HELPERS_H
+#ifndef _LIBBPF_PROG_HELPERS_H
+#define _LIBBPF_PROG_HELPERS_H
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <errno.h>
 #include <linux/if_link.h>
-#include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "consts.h"
+#include "workshop/user/constants.h"
 
 static __u32 xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
 
@@ -105,4 +105,4 @@ static int attach(int if_index, char *prog_path, char *section)
     return EXIT_OK;
 }
 
-#endif // _XDP_PROG_HELPERS_H
+#endif // _LIBBPF_PROG_HELPERS_H

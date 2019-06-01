@@ -4,7 +4,7 @@
 
 #include "kernel/bpf_helpers.h"
 
-#include "common/structs.h"
+#include "workshop/common.h"
 
 /*
     This definition is similar to the 'counters' definition in the last section.

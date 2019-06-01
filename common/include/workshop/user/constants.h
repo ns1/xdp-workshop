@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
-#ifndef _CONSTS_H
-#define _CONSTS_H
+#ifndef _CONSTANTS_H
+#define _CONSTANTS_H
 
 #include <linux/bpf.h>
 
@@ -45,4 +45,4 @@ static const char *action2str(int action)
     return NULL;
 }
 
-#endif // _CONSTS_H
+#endif // _CONSTANTS_H

@@ -16,9 +16,10 @@
 
 #include "kernel/bpf_util.h"
 
-#include "common/consts.h"
-#include "common/options.h"
-#include "common/user_helpers.h"
+#include "workshop/user/constants.h"
+#include "workshop/user/map_helpers.h"
+#include "workshop/user/options.h"
+#include "workshop/user/utils.h"
 
 #define ACTION_MAP_PATH "/sys/fs/bpf/action"
 
