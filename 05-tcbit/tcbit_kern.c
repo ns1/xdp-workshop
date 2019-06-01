@@ -5,7 +5,7 @@
 
 #include "kernel/bpf_endian.h"
 
-#include "common.h"
+#include "tcbit_kern.h"
 #include "tcbit_kern_parsers.h"
 #include "tcbit_kern_utils.h"
 

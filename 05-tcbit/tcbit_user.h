@@ -22,7 +22,7 @@
 #include "workshop/user/prog_helpers.h"
 #include "workshop/user/utils.h"
 
-#include "common.h"
+// #include "common.h"
 
 static char *default_prog_path = "tcbit_kern.o";
 static char *default_section = "tcbit";
