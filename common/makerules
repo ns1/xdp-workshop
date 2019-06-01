@@ -2,8 +2,10 @@ CC ?= gcc
 LLC ?= llc
 CLANG ?= clang
 
+rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
+
 COMMON_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-COMMON_HEADERS = $(wildcard $(COMMON_DIR)/include/common/*.h)
+COMMON_HEADERS = $(call rwildcard, $(COMMON_DIR)include, *.h)
 
 KERNEL_TARGET_OBJECT = ${KERNEL_TARGET:=.o}
 KERNEL_TARGET_LLC_OBJECT = ${KERNEL_TARGET:=.ll}
