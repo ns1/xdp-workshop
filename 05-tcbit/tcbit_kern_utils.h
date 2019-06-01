@@ -1,11 +1,19 @@
-#ifndef _UTILS_H
-#define _UTILS_H
+// SPDX-License-Identifier: GPL-2.0
+
+#ifndef _TCBIT_KERN_UTILS_H
+#define _TCBIT_KERN_UTILS_H
 
 #include <linux/bpf.h>
 
 #include "bpf_helpers.h"
-#include "common.h"
+
 #include "structs.h"
+
+#define bpf_debug(fmt, ...)                                        \
+    ({                                                             \
+        char ____fmt[] = fmt;                                      \
+        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+    })
 
 static __always_inline struct context to_ctx(struct xdp_md *xdp_ctx)
 {
@@ -41,4 +49,4 @@ static __always_inline __u32 update_action_stats(struct context *ctx, __u32 acti
     return action;
 }
 
-#endif /* _UTILS_H */
+#endif // _TCBIT_KERN_UTILS_H

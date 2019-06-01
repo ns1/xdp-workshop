@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0
+
 #ifndef _LAYER4_USER_H
 #define _LAYER4_USER_H
 
