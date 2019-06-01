@@ -3,7 +3,7 @@ LLC ?= llc
 CLANG ?= clang
 
 COMMON_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-COMMON_HEADERS = $(wildcard $(COMMON_DIR)/headers/*.h)
+COMMON_HEADERS = $(wildcard $(COMMON_DIR)/include/common/*.h)
 
 KERNEL_TARGET_OBJECT = ${KERNEL_TARGET:=.o}
 KERNEL_TARGET_LLC_OBJECT = ${KERNEL_TARGET:=.ll}
@@ -16,7 +16,7 @@ LIBBPF_OUTPUT_DIR = $(COMMON_DIR)/libbpf
 LIBBPF_TARGET = $(LIBBPF_OUTPUT_DIR)/libbpf.a
 
 CFLAGS ?=
-CFLAGS += "-I$(COMMON_DIR)/headers/"
+CFLAGS += "-I$(COMMON_DIR)/include/"
 CFLAGS += "-I$(LIBBPF_OUTPUT_DIR)/usr/include/"
 CFLAGS += "-I/usr/include/x86_64-linux-gnu"
 

@@ -5,11 +5,12 @@
 
 #include <linux/bpf.h>
 
-#include "bpf_endian.h"
-#include "bpf_helpers.h"
+#include "kernel/bpf_endian.h"
+#include "kernel/bpf_helpers.h"
+
+#include "common/structs.h"
 
 #include "common.h"
-#include "structs.h"
 
 /*
     'to_ctx' handles taking in the supplied 'xdp_md' structure and converting it to our custom context structure for use throughout the XDP

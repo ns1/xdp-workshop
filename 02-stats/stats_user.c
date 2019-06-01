@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "bpf_util.h"
+#include "kernel/bpf_util.h"
+
 #include "common.h"
 
 /*

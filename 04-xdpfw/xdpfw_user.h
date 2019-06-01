@@ -13,13 +13,15 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#include "bpf_util.h"
+#include "kernel/bpf_util.h"
+
+#include "common/consts.h"
+#include "common/options.h"
+#include "common/structs.h"
+#include "common/user_helpers.h"
+#include "common/xdp_prog_helpers.h"
+
 #include "common.h"
-#include "consts.h"
-#include "options.h"
-#include "structs.h"
-#include "user_helpers.h"
-#include "xdp_prog_helpers.h"
 
 #define MAC_BLACKLIST_PATH "/sys/fs/bpf/mac_blacklist"
 #define V4_BLACKLIST_PATH "/sys/fs/bpf/v4_blacklist"

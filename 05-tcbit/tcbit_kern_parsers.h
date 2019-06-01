@@ -5,7 +5,7 @@
 
 #include <linux/bpf.h>
 
-#include "bpf_helpers.h"
+#include "kernel/bpf_helpers.h"
 
 static __always_inline __u32 parse_eth(struct context *ctx)
 {

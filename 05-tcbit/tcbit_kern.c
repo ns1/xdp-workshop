@@ -3,7 +3,7 @@
 #include <linux/in.h>
 #include <linux/in6.h>
 
-#include "bpf_endian.h"
+#include "kernel/bpf_endian.h"
 
 #include "common.h"
 #include "tcbit_kern_parsers.h"

@@ -2,7 +2,7 @@
 
 #include <linux/bpf.h>
 
-#include "bpf_helpers.h"
+#include "kernel/bpf_helpers.h"
 
 /*
     The function bpf_debug will print messages to '/sys/kernel/debug/tracing/trace_pipe'.

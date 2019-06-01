@@ -14,10 +14,11 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#include "bpf_util.h"
-#include "consts.h"
-#include "options.h"
-#include "user_helpers.h"
+#include "kernel/bpf_util.h"
+
+#include "common/consts.h"
+#include "common/options.h"
+#include "common/user_helpers.h"
 
 #define ACTION_MAP_PATH "/sys/fs/bpf/action"
 

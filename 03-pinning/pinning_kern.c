@@ -2,8 +2,9 @@
 
 #include <linux/bpf.h>
 
-#include "bpf_helpers.h"
-#include "structs.h"
+#include "kernel/bpf_helpers.h"
+
+#include "common/structs.h"
 
 /*
     This definition is similar to the 'counters' definition in the last section.
