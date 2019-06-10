@@ -1,10 +1,10 @@
 # Pinning
-In this exercise we are going dive into how we can leverage `libbpf` in order to facilitate interacting with and managing XDP programs. As opposed to leveraging `bpftool`/`iproute2`, which while useful and entirely capable is combursome to use.
+In this exercise we are going to dive into how we can leverage `libbpf` in order to facilitate interacting with and managing XDP programs. As opposed to leveraging `bpftool`/`iproute2`, which while useful and entirely capable can be combursome to use.
 
 ## `libbpf`
-Before we jump into the code, lets make sure we are up to date with what `libbpf` is. The library is part of the linux kernel and is a set of structures, functions, macros, and helpers for interacting with and managing BPF in general. It can be used with standard BPF as well as XDP and it likely the main entrypoint to manging XDP/BPF programatically.
+Before we jump into the code, lets make sure we are up to date with what `libbpf` is. The library is part of the linux kernel and is a set of structures, functions, macros, and helpers for interacting with and managing BPF in general. It can be used with standard BPF as well as XDP and is the main entrypoint for manging XDP/BPF programatically.
 
-There are some key functions that we will be leveraging throughout the rest of this workshop and likely will be used in pretty much every XDP managment program.
+There are some key functions that we will be leveraging throughout the rest of this workshop and will be used in most XDP managment programs.
 - `bpf_obj_get` - loads a bpf object from a file.
 - `bpf_map_update_elem` + `bpf_map_lookup_elem` - either updates or queries for a value in a BPF map object.
 - `bpf_prog_load` - loads a bpf program from an elf object file on disk.

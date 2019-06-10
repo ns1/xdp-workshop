@@ -165,7 +165,6 @@ This BPF map is an array of one element using `__u32` keys with `struct counters
 
 In order to view this data we have two options we can use `libbpf` to interrogate the file programatically which is what the file `stats_user.c` is doing, or we can use a tool called `bpftool` to take a look at this map in action.
 
-
 ### `bpftool`
 Lets start with `bpftool` so that we can both take a peak at the map itself and the values it contains as well as pin it to the file system so that `stats_user` can interact with it from user space.
 
@@ -196,7 +195,7 @@ $ sudo bpftool prog list
         xlated 184B  jited 148B  memlock 4096B  map_ids 57
 ```
 
-So that was a good deal of information returned by `bpftool` lets ignore the `cgroup_skb` entries which are used byt the kernel for other utilities. The key here is there should be a `xdp` entry listed.
+So that was a good deal of information returned by `bpftool` lets ignore the `cgroup_skb` entries which are used by the kernel for other utilities. The key here is there should be a `xdp` entry listed.
 
 Now that we know our program is installed and operating lets take a look at the map objects we have to work with:
 
@@ -257,7 +256,7 @@ So in our current implementation we are using a `BPF_MAP_TYPE_ARRAY` which is a 
 
 This is where `BPF_MAP_TYPE_PERCPU_ARRAY` and really any of the `PERCPU` variants of the BPF maps come into play. These variants have a shared key space but every CPU that is running the XDP program gets its own value for a given key. Meaning no locking is needed and the userspace needs to handle piecing things together to get the overall value for any given key.
 
-So lets update out `stats_kern.c` and `stats_user.c` to handle working with a `BPF_MAP_TYPE_PERCPU_ARRAY`. Each one needs changes, the `stats_kern.c` file needs to be updated so that the BPF map definition has the proper type and that the `__sync_fetch_and_add` calls are replaced with just updating the fields of the returned `cnt` value directly.
+So lets update our `stats_kern.c` and `stats_user.c` to handle working with a `BPF_MAP_TYPE_PERCPU_ARRAY`. Each one needs changes, the `stats_kern.c` file needs to be updated so that the BPF map definition has the proper type and that the `__sync_fetch_and_add` calls are replaced with just updating the fields of the returned `cnt` value directly.
 
 The `stats_user.c` needs more indepth changes, but it will revolve around updating the `get_array_stats` function to handle passing in an array of `struct counters` into the call to `bpf_map_lookup_elem` instead of the `struct counters` pointer passed into the function.
 

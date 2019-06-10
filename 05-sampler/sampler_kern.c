@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
 
-#include <linux/in.h>
-#include <linux/in6.h>
-
 #include "sampler_kern.h"
 
 struct bpf_map_def SEC("maps") sample_rate = {
