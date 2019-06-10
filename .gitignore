@@ -7,7 +7,7 @@ stats_user
 pinning_user
 xdpfw_user
 tcbit_user
-loadshed_user
+sampler_user
 
 # Compiled libbpf objects and includes
 common/libbpf

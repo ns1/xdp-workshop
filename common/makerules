@@ -41,6 +41,7 @@ $(USER_TARGET): %: %.c $(USER_TARGET_DEPS) $(LIBBPF_TARGET) $(COMMON_HEADERS)
 		-L$(LIBBPF_OUTPUT_DIR) \
 		-Wall \
 		-Wno-unused-variable \
+		-Wno-unused-function \
 		-O2 -g -o $@ $< \
 		-l:libbpf.a -lbpf -lelf
 
