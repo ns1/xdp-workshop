@@ -22,6 +22,11 @@ struct vlan_hdr
     __be16 h_vlan_encapsulated_proto;
 };
 
+/*
+    'context' here is a bit more complex this time around since we need to keep track of the various header objects so that 
+    when we go to retransmit this packet we can properly update the various addresses and checksums to ensure that the response
+    goes to the correct client and isn't dropped by networking hardware on the way back.
+*/
 struct context
 {
     void *data_start;
@@ -38,6 +43,9 @@ struct context
     struct dnshdr *dns;
 };
 
+/*
+    'dns_flag_bits' is just a bitfield struct to handle updating the various flags and options in a dns packet header.
+*/
 struct dns_flag_bits
 {
     __u16 rd : 1,
@@ -50,11 +58,18 @@ struct dns_flag_bits
         ra : 1;
 };
 
+/*
+    We are using a union as our primary dns_flags object so that we can easily track the initial and then changed value to update checksum based on our changes
+    to the header fields.
+*/
 union dns_flags {
     __u16 data;
     struct dns_flag_bits bits;
 };
 
+/*
+    This is just a truncated dnshdr struct that only concerns itself with the beginning id and flags of the dns packet.
+*/
 struct dnshdr
 {
     __u16 id;

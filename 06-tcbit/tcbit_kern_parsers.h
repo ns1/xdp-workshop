@@ -7,6 +7,12 @@
 
 #include "kernel/bpf_helpers.h"
 
+/*
+    These parser functions are very similar to the ones we used in the xdpfw exercise previously however we have removed the various
+    MAP's that controlled the blacklist's. The one other change of note is that the UDP parser handles checking that the destination port of
+    the packet is port 53.
+*/
+
 static __always_inline __u32 parse_eth(struct context *ctx)
 {
     ctx->eth = ctx->data_start + ctx->nh_offset;

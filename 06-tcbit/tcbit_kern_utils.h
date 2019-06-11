@@ -9,12 +9,7 @@
 
 #include "workshop/common.h"
 #include "workshop/kern/action_counters.h"
-
-#define bpf_debug(fmt, ...)                                        \
-    ({                                                             \
-        char ____fmt[] = fmt;                                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
-    })
+#include "workshop/kern/bpf_debug.h"
 
 static __always_inline struct context to_ctx(struct xdp_md *xdp_ctx)
 {
