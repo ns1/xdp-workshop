@@ -10,56 +10,25 @@
 
 #include "common.h"
 #include "workshop/common.h"
+#include "workshop/kern/bpf_debug.h"
+#include "workshop/kern/action_counters.h"
 
-#define bpf_debug(fmt, ...)                                        \
-    ({                                                             \
-        char ____fmt[] = fmt;                                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
-    })
+/*
+    'perf_metadata' represents the data we are passing along to the bpf_perf_event_output function along with the,
+    actual packet data. This is used in userspace to determine the length of the data that is sent into userspace from the 
+    XDP program as well as to determine if the perf event is indeed from our XDP program. 
 
-struct context
-{
-    void *data_start;
-    void *data_end;
-    __u32 length;
-};
+    The 'cookie' field is an arbitrary key of sorts that we can use to verify that the perf event itself is coming froma a source that make sense,
+    and that we should dissect the event in userspace.
 
+    The 'length' field is a note to tell the userspace application how much data was included in the perf event so that it knows how much data to parse.
+
+    Note that we are not actually passing in the data itself here, and that is handled by the kernel and is actually made available via a perf ring.
+*/
 struct perf_metadata
 {
     __u16 cookie;
     __u16 length;
 } __packed;
-
-static __always_inline struct context to_ctx(struct xdp_md *xdp_ctx)
-{
-    struct context ctx = {
-        .data_start = (void *)(long)xdp_ctx->data,
-        .data_end = (void *)(long)xdp_ctx->data_end,
-    };
-    ctx.length = ctx.data_end - ctx.data_start;
-
-    return ctx;
-}
-
-struct bpf_map_def SEC("maps") action_counters = {
-    .type = BPF_MAP_TYPE_PERCPU_ARRAY,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct counters),
-    .max_entries = XDP_MAX_ACTIONS,
-};
-
-static __always_inline __u32 update_action_stats(struct context *ctx, __u32 action)
-{
-    struct counters *counters = (struct counters *)bpf_map_lookup_elem(&action_counters, &action);
-    if (!counters)
-    {
-        return XDP_ABORTED;
-    }
-
-    counters->packets += 1;
-    counters->bytes += ctx->length;
-
-    return action;
-}
 
 #endif // _SAMPLER_KERN_H

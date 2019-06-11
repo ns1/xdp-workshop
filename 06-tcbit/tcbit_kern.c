@@ -135,7 +135,7 @@ int tcbit_fn(struct xdp_md *xdp_ctx)
 
     action = XDP_TX;
 ret:
-    return update_action_stats(&ctx, action);
+    return update_action_stats(ctx.length, action);
 }
 
 char _license[] SEC("license") = "GPL";

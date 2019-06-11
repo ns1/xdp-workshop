@@ -8,6 +8,7 @@
 #include "kernel/bpf_helpers.h"
 
 #include "workshop/common.h"
+#include "workshop/kern/action_counters.h"
 
 #define bpf_debug(fmt, ...)                                        \
     ({                                                             \
@@ -26,27 +27,6 @@ static __always_inline struct context to_ctx(struct xdp_md *xdp_ctx)
     ctx.length = ctx.data_end - ctx.data_start;
 
     return ctx;
-}
-
-struct bpf_map_def SEC("maps") action_counters = {
-    .type = BPF_MAP_TYPE_PERCPU_ARRAY,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct counters),
-    .max_entries = XDP_MAX_ACTIONS,
-};
-
-static __always_inline __u32 update_action_stats(struct context *ctx, __u32 action)
-{
-    struct counters *counters = (struct counters *)bpf_map_lookup_elem(&action_counters, &action);
-    if (!counters)
-    {
-        return XDP_ABORTED;
-    }
-
-    counters->packets += 1;
-    counters->bytes += ctx->length;
-
-    return action;
 }
 
 #endif // _TCBIT_KERN_UTILS_H
